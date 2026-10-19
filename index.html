@@ -118,7 +118,7 @@
         .top h1::after { content: ""; display: block; width: 44px; height: 4px; margin-top: 10px; border-radius: 4px; background: var(--tangerine); }
         .top p { margin: 8px 0 0; color: var(--ink2); }
         .account { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: .9rem; color: var(--ink2); }
-        .account label { display: inline-flex; align-items: center; gap: 8px; }
+        .account .who b { margin-left: 4px; color: var(--ink); }
 
         /* ფილტრები - ერთ რიგში, ყველაფერს ზემოდან მართავს */
         .bar {
@@ -204,7 +204,7 @@
         /* ---------- ცხრილები ---------- */
         .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
         .filters input { flex: 1; min-width: 200px; }
-        #tableBox, #panelGroups { overflow-x: auto; }
+        #tableBox { overflow-x: auto; }
         .tbl { width: 100%; border-collapse: collapse; }
         .tbl th { text-align: left; font-size: .8rem; font-weight: 600; color: var(--muted); padding: 6px 12px 10px; white-space: nowrap; }
         .tbl td { padding: 11px 12px; vertical-align: middle; }
@@ -212,13 +212,10 @@
         .tbl td:first-child, .tbl th:first-child { border-radius: 10px 0 0 10px; }
         .tbl td:last-child, .tbl th:last-child { border-radius: 0 10px 10px 0; }
         .tbl .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-        .tbl.clickable tbody tr { cursor: pointer; }
         .tog { font: inherit; font-weight: 600; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
         .tog::before { content: "▸"; display: inline-block; width: 1.1em; color: var(--muted); }
         .tog[aria-expanded="true"]::before { content: "▾"; }
         .tog:hover { text-decoration: underline; }
-        .link { font: inherit; font-weight: 600; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
-        .link:hover { text-decoration: underline; }
         .score { display: flex; align-items: center; gap: 10px; }
         .meter { width: 110px; height: 8px; border-radius: 99px; background: var(--track); overflow: hidden; flex: none; }
         .meter i { display: block; height: 100%; background: var(--series); border-radius: 99px; }
@@ -306,7 +303,7 @@
                 <p id="quizTitle"></p>
             </div>
             <div class="account">
-                <label>ლექტორი <select id="me" aria-label="ლექტორი"></select></label>
+                <span class="who">ლექტორი: <b id="meName"></b></span>
                 <button type="button" class="btn" id="logout">გამოსვლა</button>
             </div>
         </header>
@@ -314,7 +311,6 @@
         <section class="bar" aria-label="ფილტრები">
             <label class="pick">ჯგუფი <select id="group"></select></label>
             <label class="pick" id="quizPick" hidden>ტესტი <select id="quiz"></select></label>
-            <label class="check"><input type="checkbox" id="mine"> მხოლოდ ჩემი სტუდენტები</label>
             <div class="tools">
                 <span id="updated">იტვირთება…</span>
                 <label class="check"><input type="checkbox" id="auto" checked> ავტო (30 წმ)</label>
@@ -330,8 +326,6 @@
                 <section class="panel" id="panelScores"></section>
                 <section class="panel" id="panelQuestions"></section>
             </div>
-
-            <section class="panel" id="panelGroups" hidden></section>
 
             <section class="panel">
                 <div class="panel-head">
@@ -438,7 +432,7 @@
         let SESSION = null;      // { lecturerId, code }
         let REMEMBER = true;
         let DATA = null;         // სერვერის პასუხი: quizzes, lecturers, groups, results
-        const VIEW = { group: '*', quiz: null, mine: false, q: '', sort: 'point' };
+        const VIEW = { group: '*', quiz: null, q: '', sort: 'point' };
         const OPEN = new Set();  // გახსნილი სტუდენტების id-ები (განახლებისას არ იკეტება)
         const CHART_MODE = { scores: 'chart', questions: 'chart' };
         let timer = null;
@@ -582,14 +576,9 @@
             setAuto();
         }
 
+        // არჩეული ლექტორის სახელი მხოლოდ ტექსტად ჩანს - შესვლისას უკვე აირჩია
         function fillMe() {
-            const sel = $('me');
-            sel.textContent = '';
-            DATA.lecturers.filter(l => l.active || l.id === SESSION.lecturerId).forEach(l => {
-                const o = h('option', { value: String(l.id) }, l.name);
-                if (l.id === SESSION.lecturerId) o.selected = true;
-                sel.append(o);
-            });
+            $('meName').textContent = (DATA.lecturers.find(l => l.id === SESSION.lecturerId) || {}).name || '';
         }
 
         function ensureQuiz() {
@@ -616,8 +605,7 @@
         function scoped() {
             return DATA.results.filter(r =>
                 r.quiz === VIEW.quiz &&
-                (VIEW.group === '*' || r.group === VIEW.group) &&
-                (!VIEW.mine || r.lecturer === SESSION.lecturerId));
+                (VIEW.group === '*' || r.group === VIEW.group));
         }
 
         function buildGroupSelect() {
@@ -652,7 +640,6 @@
             renderKpis(rows, quiz);
             renderScores(rows, quiz);
             renderQuestions(rows, quiz);
-            renderGroups();
             renderTable(rows, quiz);
         }
 
@@ -790,41 +777,6 @@
                     labelFor: i => lowest.has(i) || i === highest
                 });
             });
-        }
-
-        /* ---------- ჯგუფების ცხრილი (მხოლოდ „ყველა ჯგუფი“-ს დროს) ---------- */
-        function renderGroups() {
-            const panel = $('panelGroups');
-            const rows = scoped();
-            panel.hidden = VIEW.group !== '*' || !rows.length;
-            if (panel.hidden) return;
-            const by = new Map();
-            rows.forEach(r => { if (!by.has(r.group)) by.set(r.group, []); by.get(r.group).push(r); });
-            const list = [...by.entries()].map(([key, rs]) => ({
-                key, label: groupLabel(key), n: rs.length,
-                avg: mean(rs.map(r => r.point)),
-                time: mean(rs.map(r => r.time).filter(t => t > 0)) || 0,
-                best: Math.max(...rs.map(r => r.point))
-            })).sort((a, b) => a.label.localeCompare(b.label, 'en'));
-            const max = quizInfo().max;
-            panel.textContent = '';
-            panel.append(
-                h('div', { class: 'panel-head' }, h('div', {}, h('h2', {}, 'ჯგუფების შედარება'), h('p', { class: 'sub' }, 'დააწკაპუნე ჯგუფზე, რომ მხოლოდ ის ჯგუფი გამოჩნდეს.'))),
-                h('table', { class: 'tbl clickable' },
-                    h('thead', {}, h('tr', {}, ['ჯგუფი', 'სტუდენტი', 'საშუალო ქულა', 'საშუალო დრო', 'საუკეთესო'].map(t => h('th', {}, t)))),
-                    h('tbody', {}, list.map(g => {
-                        const go = () => { VIEW.group = g.key; saveGroupChoice(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-                        const tr = h('tr', {},
-                            h('td', {}, h('button', { type: 'button', class: 'link', onclick: e => { e.stopPropagation(); go(); } }, g.label)),
-                            h('td', { class: 'num' }, String(g.n)),
-                            h('td', { class: 'num' }, h('div', { class: 'score' },
-                                h('div', { class: 'meter', role: 'img', 'aria-label': `${g.avg.toFixed(1)} / ${max}` }, h('i', { style: `width:${g.avg / max * 100}%` })),
-                                h('span', {}, `${g.avg.toFixed(1)} / ${max}`))),
-                            h('td', { class: 'num' }, fmtTime(Math.round(g.time))),
-                            h('td', { class: 'num' }, `${g.best} / ${max}`));
-                        tr.addEventListener('click', go);
-                        return tr;
-                    }))));
         }
 
         /* ---------- სტუდენტების ცხრილი ---------- */
@@ -981,13 +933,6 @@
         $('auto').addEventListener('change', setAuto);
         $('group').addEventListener('change', e => { VIEW.group = e.target.value; saveGroupChoice(); render(); });
         $('quiz').addEventListener('change', e => { VIEW.quiz = e.target.value; render(); });
-        $('mine').addEventListener('change', e => { VIEW.mine = e.target.checked; render(); });
-        $('me').addEventListener('change', e => {
-            SESSION.lecturerId = Number(e.target.value);
-            saveSession();
-            VIEW.group = pickDefaultGroup();
-            render();
-        });
         $('q').addEventListener('input', () => renderTable(scoped(), quizInfo()));
         $('sort').addEventListener('change', e => { VIEW.sort = e.target.value; renderTable(scoped(), quizInfo()); });
         document.addEventListener('visibilitychange', () => { if (!document.hidden && SESSION) reload(); });
