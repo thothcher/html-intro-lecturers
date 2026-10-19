@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ka">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ლექტორების დაფა</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <style>
+        :root {
+            color-scheme: light;
+            /* პალიტრა: pacific blue / blue slate / platinum / tangerine dream */
+            --tangerine: #e39774;
+
+            --page: #eeeeee;
+            --surface: #ffffff;
+            --soft: #eeeeee;
+            --soft-hover: #e2e6e7;
+            --ink: #1e2f36;
+            --ink2: #51636a;
+            --muted: #6a7b82;
+            --grid: #eef0f1;
+            --axis: #d6dcde;
+            --series: #5c9ead;
+            --series-hi: #4d8c9b;
+            --accent: #326273;
+            --accent-ink: #ffffff;
+            --track: #d9eaee;
+            --wash: rgba(50, 98, 115, .06);
+            --bad: #a04c28;
+            --bad-bg: #fbe9df;
+            --ok-chip: #cfe5ea;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                color-scheme: dark;
+                --page: #0f1a1e;
+                --surface: #16252b;
+                --soft: #1e3038;
+                --soft-hover: #27404a;
+                --ink: #e6eef0;
+                --ink2: #a9bcc3;
+                --muted: #8aa1a9;
+                --grid: #1e3038;
+                --axis: #2c444d;
+                --series: #5c9ead;
+                --series-hi: #74b3c1;
+                --accent: #8cc3d0;
+                --accent-ink: #0f1a1e;
+                --track: #22404a;
+                --wash: rgba(255, 255, 255, .06);
+                --bad: #f2b595;
+                --bad-bg: #3d2c23;
+                --ok-chip: #1f4350;
+            }
+        }
+
+        * { box-sizing: border-box; }
+        [hidden] { display: none !important; }
+
+        body {
+            margin: 0;
+            background: var(--page);
+            color: var(--ink);
+            font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans Georgian", sans-serif;
+            line-height: 1.5;
+        }
+
+        .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 56px; }
+        :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+        /* ---------- ღილაკები და ველები ---------- */
+        .btn {
+            padding: 9px 18px;
+            font: inherit;
+            font-weight: 600;
+            color: var(--ink);
+            background: var(--surface);
+            border: 0;
+            border-radius: 10px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn:hover:not(:disabled) { background: var(--soft-hover); }
+        .btn:disabled { opacity: .6; cursor: default; }
+        .btn.primary { background: var(--accent); color: var(--accent-ink); }
+        .btn.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.1); }
+        .btn.danger { color: var(--bad); background: var(--bad-bg); }
+        select, input[type="search"], input[type="password"] {
+            font: inherit;
+            color: var(--ink);
+            background: var(--soft);
+            border: 0;
+            border-radius: 10px;
+            padding: 9px 12px;
+        }
+        input::placeholder { color: var(--muted); }
+        .check { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: .9rem; color: var(--ink2); }
+        .check input { accent-color: var(--series); width: 16px; height: 16px; }
+
+        /* ---------- შესვლა ---------- */
+        .login { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+        .login-card { width: min(420px, 100%); background: var(--surface); border-radius: 16px; padding: 28px; }
+        .login-card h1 { margin: 0; font-size: 1.5rem; line-height: 1.25; }
+        .login-card h1::after { content: ""; display: block; width: 44px; height: 4px; margin-top: 10px; border-radius: 4px; background: var(--tangerine); }
+        .login-card .sub { margin: 10px 0 20px; color: var(--ink2); }
+        .field { display: grid; gap: 6px; margin-bottom: 14px; }
+        .field label { font-weight: 600; font-size: .92rem; }
+        .field select, .field input { width: 100%; padding: 11px 14px; }
+        .hint { margin: -6px 0 14px; color: var(--muted); font-size: .82rem; }
+        .msg { margin: 0 0 14px; padding: 11px 14px; border-radius: 10px; background: var(--bad-bg); color: var(--ink); font-size: .92rem; }
+        .login-card .btn { width: 100%; margin-top: 6px; padding: 12px 18px; }
+
+        /* ---------- ზედა ზოლი ---------- */
+        .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+        .top h1 { margin: 0; font-size: 1.6rem; line-height: 1.25; font-weight: 700; }
+        .top h1::after { content: ""; display: block; width: 44px; height: 4px; margin-top: 10px; border-radius: 4px; background: var(--tangerine); }
+        .top p { margin: 8px 0 0; color: var(--ink2); }
+        .account { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: .9rem; color: var(--ink2); }
+        .account label { display: inline-flex; align-items: center; gap: 8px; }
+
+        /* ფილტრები - ერთ რიგში, ყველაფერს ზემოდან მართავს */
+        .bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 16px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
+            background: var(--surface);
+            border-radius: 16px;
+            font-size: .9rem;
+            color: var(--ink2);
+        }
+        .bar .pick { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); }
+        .bar .pick select { font-weight: 600; min-width: 190px; max-width: 100%; }
+        .bar .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-left: auto; }
+        #updated { font-size: .82rem; color: var(--muted); }
+        .bar .btn { background: var(--soft); padding: 8px 14px; }
+        .bar .btn:hover:not(:disabled) { background: var(--soft-hover); }
+
+        .panel { background: var(--surface); border-radius: 16px; padding: 22px 24px; margin-bottom: 14px; }
+        .panel-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; margin-bottom: 14px; }
+        .panel h2 { margin: 0; font-size: 1.05rem; }
+        .panel .sub { margin: 2px 0 0; color: var(--ink2); font-size: .9rem; }
+        .seg { display: inline-flex; background: var(--soft); border-radius: 10px; padding: 2px; flex: none; }
+        .seg button { font: inherit; font-size: .82rem; font-weight: 600; color: var(--ink2); background: none; border: 0; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
+        .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
+        .state { padding: 28px 8px; text-align: center; color: var(--ink2); }
+        .state.err { color: var(--bad); font-weight: 600; }
+
+        .loading .kpis, .loading .grid2, .loading #tableBox { opacity: .6; transition: opacity .15s; }
+
+        /* ---------- KPI ---------- */
+        .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }
+        .tile { background: var(--surface); border-radius: 16px; padding: 16px 18px; min-width: 0; }
+        .tile .lbl { color: var(--ink2); font-size: .85rem; }
+        .tile .val { font-size: 1.9rem; font-weight: 600; line-height: 1.2; margin-top: 2px; }
+        .tile .val small { font-size: .95rem; font-weight: 500; color: var(--ink2); margin-left: 3px; }
+        .tile .note { color: var(--muted); font-size: .8rem; margin-top: 2px; overflow-wrap: anywhere; }
+
+        .grid2 { display: grid; grid-template-columns: 1fr 1.7fr; gap: 14px; }
+        .grid2 .panel { margin-bottom: 14px; min-width: 0; }
+
+        /* ---------- სვეტოვანი დიაგრამა ---------- */
+        .chart { position: relative; padding-left: 34px; }
+        .plot { position: relative; height: 190px; }
+        .gl { position: absolute; left: 0; right: 0; height: 1px; background: var(--grid); }
+        .gl.base { background: var(--axis); }
+        .gl span { position: absolute; left: -34px; width: 26px; text-align: right; transform: translateY(-50%); font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+        .cols { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--n), 1fr); }
+        .col { position: relative; border-radius: 8px; cursor: default; }
+        .col:hover, .col:focus-visible { background: var(--wash); }
+        .bar-mark {
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            width: min(24px, 64%);
+            transform: translateX(-50%);
+            height: calc(var(--h) * 1%);
+            background: var(--series);
+            border-radius: 4px 4px 0 0;
+        }
+        .col:hover .bar-mark, .col:focus-visible .bar-mark { background: var(--series-hi); }
+        .cap { position: absolute; left: 0; right: 0; bottom: calc(var(--h) * 1% + 4px); text-align: center; font-size: .78rem; font-weight: 600; white-space: nowrap; }
+        .xl { display: grid; grid-template-columns: repeat(var(--n), 1fr); margin-top: 6px; text-align: center; font-size: .75rem; color: var(--muted); }
+        .tip {
+            position: absolute;
+            z-index: 5;
+            width: max-content;
+            max-width: 240px;
+            padding: 9px 12px;
+            background: var(--surface);
+            color: var(--ink);
+            border-radius: 10px;
+            box-shadow: 0 6px 22px rgba(20, 24, 40, .18);
+            font-size: .85rem;
+            pointer-events: none;
+        }
+        .tip b { display: block; font-size: 1rem; }
+        .tip span { display: block; color: var(--ink2); }
+
+        /* ---------- ცხრილები ---------- */
+        .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+        .filters input { flex: 1; min-width: 200px; }
+        #tableBox, #panelGroups { overflow-x: auto; }
+        .tbl { width: 100%; border-collapse: collapse; }
+        .tbl th { text-align: left; font-size: .8rem; font-weight: 600; color: var(--muted); padding: 6px 12px 10px; white-space: nowrap; }
+        .tbl td { padding: 11px 12px; vertical-align: middle; }
+        .tbl tbody tr:not(.sub-row):hover td { background: var(--wash); }
+        .tbl td:first-child, .tbl th:first-child { border-radius: 10px 0 0 10px; }
+        .tbl td:last-child, .tbl th:last-child { border-radius: 0 10px 10px 0; }
+        .tbl .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .tbl.clickable tbody tr { cursor: pointer; }
+        .tog { font: inherit; font-weight: 600; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+        .tog::before { content: "▸"; display: inline-block; width: 1.1em; color: var(--muted); }
+        .tog[aria-expanded="true"]::before { content: "▾"; }
+        .tog:hover { text-decoration: underline; }
+        .link { font: inherit; font-weight: 600; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+        .link:hover { text-decoration: underline; }
+        .score { display: flex; align-items: center; gap: 10px; }
+        .meter { width: 110px; height: 8px; border-radius: 99px; background: var(--track); overflow: hidden; flex: none; }
+        .meter i { display: block; height: 100%; background: var(--series); border-radius: 99px; }
+        .sub-row td { background: var(--soft); padding: 12px 12px 14px 36px; }
+        .qs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .q { min-width: 34px; text-align: center; padding: 2px 8px; border-radius: 99px; font-size: .82rem; font-variant-numeric: tabular-nums; background: var(--surface); color: var(--ink2); }
+        .q.ok { background: var(--ok-chip); color: var(--ink); font-weight: 600; }
+        .q.no { background: var(--bad-bg); color: var(--bad); font-weight: 600; }
+        .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: .82rem; color: var(--ink2); }
+        .sub-row .legend .btn { margin-left: auto; padding: 6px 12px; font-size: .85rem; }
+
+        .foot { margin: 18px 0 0; color: var(--muted); font-size: .82rem; text-align: center; }
+
+        @media (max-width: 900px) {
+            .grid2 { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 760px) {
+            .kpis { grid-template-columns: repeat(2, 1fr); }
+            .meter { width: 64px; }
+            .hide-sm { display: none; }
+            .bar .pick select { min-width: 0; flex: 1; }
+            .bar .pick { flex: 1 1 100%; }
+        }
+        @media (max-width: 560px) {
+            .panel { padding: 16px; }
+            .xl.dense div:nth-child(even) { visibility: hidden; }
+            .chart.dense .cap { display: none; }
+            .wrap { padding-top: 16px; }
+            .tbl th, .tbl td { padding-left: 6px; padding-right: 6px; }
+            .meter { display: none; }
+            .bar .tools { margin-left: 0; }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- შესვლა: ლექტორი სიიდან ირჩევს თავის სახელს და წერს საერთო წვდომის კოდს -->
+    <main class="login" id="login" hidden>
+        <form class="login-card" id="loginForm" novalidate>
+            <h1>ლექტორების დაფა</h1>
+            <p class="sub">HTML შესავალი · სტუდენტების შედეგები</p>
+            <div class="field">
+                <label for="who">ვინ ხარ?</label>
+                <select id="who" disabled><option value="">იტვირთება…</option></select>
+            </div>
+            <div class="field">
+                <label for="code">წვდომის კოდი</label>
+                <input type="password" id="code" autocomplete="current-password" spellcheck="false">
+            </div>
+            <p class="hint">კოდი მხოლოდ ლექტორებისთვისაა - სტუდენტებს ნუ გაუზიარებ.</p>
+            <label class="check" style="margin-bottom:14px"><input type="checkbox" id="remember" checked> დამახსოვრება ამ მოწყობილობაზე</label>
+            <div class="msg" id="loginMsg" role="alert" hidden></div>
+            <button type="submit" class="btn primary" id="loginBtn" disabled>შესვლა</button>
+        </form>
+    </main>
+
+    <div class="wrap" id="app" hidden>
+        <header class="top">
+            <div>
+                <h1>დავალებების დაფა</h1>
+                <p id="quizTitle"></p>
+            </div>
+            <div class="account">
+                <label>ლექტორი <select id="me" aria-label="ლექტორი"></select></label>
+                <button type="button" class="btn" id="logout">გამოსვლა</button>
+            </div>
+        </header>
+
+        <section class="bar" aria-label="ფილტრები">
+            <label class="pick">ჯგუფი <select id="group"></select></label>
+            <label class="pick" id="quizPick" hidden>ტესტი <select id="quiz"></select></label>
+            <label class="check"><input type="checkbox" id="mine"> მხოლოდ ჩემი სტუდენტები</label>
+            <div class="tools">
+                <span id="updated">იტვირთება…</span>
+                <label class="check"><input type="checkbox" id="auto" checked> ავტო (30 წმ)</label>
+                <button type="button" class="btn" id="refresh">განახლება</button>
+                <button type="button" class="btn" id="csv">CSV</button>
+            </div>
+        </section>
+
+        <div id="dash">
+            <section class="kpis" id="kpis" aria-label="მთავარი მაჩვენებლები"></section>
+
+            <div class="grid2">
+                <section class="panel" id="panelScores"></section>
+                <section class="panel" id="panelQuestions"></section>
+            </div>
+
+            <section class="panel" id="panelGroups" hidden></section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>სტუდენტები</h2>
+                        <p class="sub" id="tableSub"></p>
+                    </div>
+                </div>
+                <div class="filters">
+                    <input type="search" id="q" placeholder="სახელით ძებნა…" aria-label="სახელით ძებნა">
+                    <select id="sort" aria-label="დალაგება">
+                        <option value="point">ქულით (მაღლიდან დაბლა)</option>
+                        <option value="time">დროით (სწრაფიდან ნელისკენ)</option>
+                        <option value="name">სახელით (ანბანით)</option>
+                        <option value="recent">ბოლოს გამოგზავნილი</option>
+                    </select>
+                </div>
+                <div id="tableBox"></div>
+            </section>
+        </div>
+
+        <p class="foot">შედეგებს ხედავენ მხოლოდ ლექტორები · ქულა და დრო ითვლება სტუდენტის ერთადერთი ცდის მიხედვით.</p>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        /* ბაზა: Cloudflare Worker + D1 (იხ. ../api). მისამართი იწერება config.js-ში. */
+        const API = String((window.APP_CONFIG && window.APP_CONFIG.API) || '').replace(/\/+$/, '');
+        const API_READY = /^https?:\/\//.test(API) && !/YOUR-SUBDOMAIN/i.test(API);
+        const REFRESH_MS = 30000;
+        const SESSION_KEY = 'hw-lecturer-session';
+
+        const $ = id => document.getElementById(id);
+
+        function h(tag, props, ...kids) {
+            const e = document.createElement(tag);
+            for (const [k, v] of Object.entries(props || {})) {
+                if (k === 'class') e.className = v;
+                else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+                else if (v === true) e.setAttribute(k, '');
+                else if (v !== false && v != null) e.setAttribute(k, v);
+            }
+            for (const kid of kids.flat()) if (kid != null && kid !== false) e.append(kid);
+            return e;
+        }
+
+        const fmtTime = sec => {
+            if (!(sec > 0)) return '-';
+            const m = Math.floor(sec / 60), s = String(Math.round(sec) % 60).padStart(2, '0');
+            return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}:${s}` : `${m}:${s}`;
+        };
+        const fmtDate = iso => {
+            const d = new Date(iso);
+            if (isNaN(d)) return '-';
+            const p = n => String(n).padStart(2, '0');
+            return `${p(d.getDate())}.${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+        };
+        const fmtDateFull = iso => {
+            const d = new Date(iso);
+            const p = n => String(n).padStart(2, '0');
+            return isNaN(d) ? '' : `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+        };
+        const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+        const median = a => {
+            const s = [...a].sort((x, y) => x - y), m = s.length >> 1;
+            return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+        };
+        const plural = n => `${n} სტუდენტი`;
+
+        /* ---------- სესია: ლექტორი + წვდომის კოდი ---------- */
+        let SESSION = null;      // { lecturerId, code }
+        let REMEMBER = true;
+        let DATA = null;         // სერვერის პასუხი: quizzes, lecturers, groups, results
+        const VIEW = { group: '*', quiz: null, mine: false, q: '', sort: 'point' };
+        const OPEN = new Set();  // გახსნილი სტუდენტების id-ები (განახლებისას არ იკეტება)
+        const CHART_MODE = { scores: 'chart', questions: 'chart' };
+        let timer = null;
+
+        function readSession() {
+            try {
+                for (const store of [localStorage, sessionStorage]) {
+                    const v = JSON.parse(store.getItem(SESSION_KEY) || 'null');
+                    if (v && v.code && v.lecturerId) return { session: v, remember: store === localStorage };
+                }
+            } catch { /* საცავი მიუწვდომელია */ }
+            return null;
+        }
+        function saveSession() {
+            try {
+                const [keep, drop] = REMEMBER ? [localStorage, sessionStorage] : [sessionStorage, localStorage];
+                keep.setItem(SESSION_KEY, JSON.stringify(SESSION));
+                drop.removeItem(SESSION_KEY);
+            } catch { /* საცავი მიუწვდომელია - სესია მხოლოდ ამ გვერდზე იარსებებს */ }
+        }
+        function clearSession() {
+            try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch { /* არაფერი */ }
+        }
+
+        async function call(path, code) {
+            if (!API_READY) throw new Error('API_NOT_SET');
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), 15000);
+            try {
+                const res = await fetch(API + path, {
+                    headers: code ? { 'X-Access-Code': encodeURIComponent(code) } : undefined,
+                    cache: 'no-store',
+                    signal: ctrl.signal
+                });
+                return { status: res.status, data: await res.json().catch(() => ({})) };
+            } finally {
+                clearTimeout(t);
+            }
+        }
+
+        /* ---------- შესვლა ---------- */
+        const NOT_CONFIGURED = 'სერვერზე წვდომის კოდი ჯერ არ არის დაყენებული. გაუშვი: npx wrangler secret put LECTURER_CODE (იხ. README, მე-3 ნაბიჯი).';
+
+        function loginMsg(text) {
+            $('loginMsg').textContent = text || '';
+            $('loginMsg').hidden = !text;
+        }
+
+        function showLogin(message) {
+            $('app').hidden = true;
+            $('login').hidden = false;
+            clearInterval(timer);
+            loginMsg(message);
+            $('code').value = '';
+        }
+
+        async function loadLecturers() {
+            const sel = $('who');
+            try {
+                const { status, data } = await call('/api/meta');
+                if (status !== 200 || !Array.isArray(data.lecturers)) throw new Error('HTTP ' + status);
+                sel.textContent = '';
+                sel.append(h('option', { value: '' }, '- აირჩიე შენი სახელი -'), ...data.lecturers.map(l => h('option', { value: String(l.id) }, l.name)));
+                sel.disabled = false;
+                $('loginBtn').disabled = false;
+                if (!data.configured) loginMsg(NOT_CONFIGURED);
+                return data;
+            } catch (err) {
+                sel.textContent = '';
+                sel.append(h('option', { value: '' }, 'ვერ ჩაიტვირთა'));
+                loginMsg(err.message === 'API_NOT_SET'
+                    ? 'სერვერის მისამართი არ არის მითითებული (config.js, იხ. README).'
+                    : 'სერვერთან კავშირი ვერ დამყარდა. შეამოწმე ინტერნეტი და განაახლე გვერდი.');
+                return null;
+            }
+        }
+
+        async function login(e) {
+            e.preventDefault();
+            const lecturerId = Number($('who').value);
+            const code = $('code').value.trim();
+            if (!lecturerId) return loginMsg('აირჩიე შენი სახელი სიიდან.');
+            if (!code) return loginMsg('ჩაწერე წვდომის კოდი.');
+            loginMsg('');
+            const btn = $('loginBtn');
+            btn.disabled = true;
+            try {
+                const { status, data } = await call('/api/results', code);
+                if (status === 200) {
+                    SESSION = { lecturerId, code };
+                    REMEMBER = $('remember').checked;
+                    saveSession();
+                    DATA = data;
+                    showApp(true);
+                } else if (status === 401) {
+                    loginMsg('კოდი არასწორია.');
+                } else if (status === 503) {
+                    loginMsg(NOT_CONFIGURED);
+                } else {
+                    loginMsg(`სერვერის შეცდომა (${status}). სცადე მოგვიანებით.`);
+                }
+            } catch (err) {
+                loginMsg('სერვერთან კავშირი ვერ დამყარდა.');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function logout(message) {
+            clearSession();
+            SESSION = null;
+            DATA = null;
+            showLogin(typeof message === 'string' ? message : '');
+        }
+
+        /* ---------- დაფა ---------- */
+        function groupsOf(lecturerId) {
+            return new Set(DATA.results.filter(r => r.lecturer === lecturerId).map(r => r.group));
+        }
+
+        function pickDefaultGroup() {
+            let saved = null;
+            try { saved = localStorage.getItem('hw-group-' + SESSION.lecturerId); } catch { /* არაფერი */ }
+            if (saved && (saved === '*' || DATA.groups.some(g => g.key === saved))) return saved;
+            // ჩემი ბოლო ჯგუფი = ჩემი ყველაზე ახალი შედეგის ჯგუფი
+            const mine = [...DATA.results].reverse().find(r => r.lecturer === SESSION.lecturerId);
+            return mine ? mine.group : '*';
+        }
+
+        function showApp(first) {
+            $('login').hidden = true;
+            $('app').hidden = false;
+            fillMe();
+            if (first) {
+                VIEW.quiz = null;
+                VIEW.group = pickDefaultGroup();
+            }
+            ensureQuiz();
+            render();
+            $('updated').textContent = 'განახლდა: ' + new Date().toLocaleTimeString('en-GB');
+            setAuto();
+        }
+
+        function fillMe() {
+            const sel = $('me');
+            sel.textContent = '';
+            DATA.lecturers.filter(l => l.active || l.id === SESSION.lecturerId).forEach(l => {
+                const o = h('option', { value: String(l.id) }, l.name);
+                if (l.id === SESSION.lecturerId) o.selected = true;
+                sel.append(o);
+            });
+        }
+
+        function ensureQuiz() {
+            const quizzes = DATA.quizzes;
+            if (!quizzes.some(q => q.id === VIEW.quiz)) {
+                const withResults = quizzes.filter(q => DATA.results.some(r => r.quiz === q.id));
+                VIEW.quiz = (withResults.length ? withResults : quizzes).slice(-1)[0].id;
+            }
+            const pick = $('quiz');
+            pick.textContent = '';
+            quizzes.forEach(q => {
+                const o = h('option', { value: q.id }, q.title);
+                if (q.id === VIEW.quiz) o.selected = true;
+                pick.append(o);
+            });
+            $('quizPick').hidden = quizzes.length < 2;
+        }
+
+        const quizInfo = () => DATA.quizzes.find(q => q.id === VIEW.quiz);
+        const lecName = id => (DATA.lecturers.find(l => l.id === id) || {}).name || '-';
+        const groupLabel = key => (DATA.groups.find(g => g.key === key) || {}).label || key;
+
+        // ფილტრების მიხედვით არჩეული შედეგები (ძებნა მხოლოდ ცხრილზე მოქმედებს)
+        function scoped() {
+            return DATA.results.filter(r =>
+                r.quiz === VIEW.quiz &&
+                (VIEW.group === '*' || r.group === VIEW.group) &&
+                (!VIEW.mine || r.lecturer === SESSION.lecturerId));
+        }
+
+        function buildGroupSelect() {
+            const sel = $('group');
+            const inQuiz = DATA.results.filter(r => r.quiz === VIEW.quiz);
+            const count = new Map();
+            inQuiz.forEach(r => count.set(r.group, (count.get(r.group) || 0) + 1));
+            const mine = groupsOf(SESSION.lecturerId);
+            const groups = DATA.groups.filter(g => count.has(g.key));
+            const opt = g => {
+                const o = h('option', { value: g.key }, `${g.label} · ${count.get(g.key)}`);
+                if (g.key === VIEW.group) o.selected = true;
+                return o;
+            };
+            sel.textContent = '';
+            const all = h('option', { value: '*' }, `ყველა ჯგუფი · ${inQuiz.length}`);
+            if (VIEW.group === '*') all.selected = true;
+            sel.append(all);
+            const myGroups = groups.filter(g => mine.has(g.key)), others = groups.filter(g => !mine.has(g.key));
+            if (myGroups.length) sel.append(h('optgroup', { label: 'ჩემი ჯგუფები' }, myGroups.map(opt)));
+            if (others.length) sel.append(h('optgroup', { label: 'სხვა ლექტორების ჯგუფები' }, others.map(opt)));
+            if (VIEW.group !== '*' && !count.has(VIEW.group)) { VIEW.group = '*'; all.selected = true; }
+        }
+
+        function render() {
+            const quiz = quizInfo();
+            $('quizTitle').textContent = quiz.title;
+            buildGroupSelect();
+            const rows = scoped();
+            renderKpis(rows, quiz);
+            renderScores(rows, quiz);
+            renderQuestions(rows, quiz);
+            renderGroups();
+            renderTable(rows, quiz);
+        }
+
+        /* ---------- KPI ---------- */
+        function renderKpis(rows, quiz) {
+            const n = rows.length;
+            const times = rows.map(r => r.time).filter(t => t > 0);
+            const best = [...rows].sort((a, b) => b.point - a.point || a.time - b.time)[0];
+            const scope = VIEW.group === '*' ? 'ყველა ჯგუფში' : `ჯგუფში ${groupLabel(VIEW.group)}`;
+            const tiles = [
+                ['სტუდენტები', String(n), '', n ? scope : 'ჯერ არავის გაუგზავნია'],
+                ['საშუალო ქულა', n ? mean(rows.map(r => r.point)).toFixed(1) : '-', n ? '/ ' + quiz.max : '', n ? `მედიანა ${median(rows.map(r => r.point))}` : ''],
+                ['საშუალო დრო', times.length ? fmtTime(Math.round(mean(times))) : '-', times.length ? 'წთ' : '', times.length ? `სწრაფი ${fmtTime(Math.min(...times))} · ნელი ${fmtTime(Math.max(...times))}` : ''],
+                ['საუკეთესო შედეგი', best ? String(best.point) : '-', best ? '/ ' + quiz.max : '', best ? `${best.name} · ${fmtTime(best.time)}` : '']
+            ];
+            const box = $('kpis');
+            box.textContent = '';
+            tiles.forEach(([lbl, val, unit, note]) => box.append(h('div', { class: 'tile' },
+                h('div', { class: 'lbl' }, lbl),
+                h('div', { class: 'val' }, val, unit ? h('small', {}, unit) : null),
+                h('div', { class: 'note' }, note || ' ')
+            )));
+        }
+
+        /* ---------- დიაგრამები ---------- */
+        /* rows: [{ label, value, title, lines: [..] }]; top = დიაგრამის მაქსიმუმი; labelFor(i) = ეს სვეტი პირდაპირ ხელმოწერილია */
+        function columnChart({ rows, top, ticks, fmt, labelFor, dense }) {
+            const root = h('div', { class: 'chart' + (dense ? ' dense' : '') });
+            const plot = h('div', { class: 'plot' });
+            ticks.forEach((v, i) => plot.append(h('div', { class: 'gl' + (i === 0 ? ' base' : ''), style: `bottom:${v / top * 100}%` }, h('span', {}, fmt(v)))));
+
+            const tip = h('div', { class: 'tip', hidden: true, role: 'tooltip' });
+            const cols = h('div', { class: 'cols', style: `--n:${rows.length}` });
+            rows.forEach((r, i) => {
+                const pct = r.value / top * 100;
+                const col = h('div', { class: 'col', tabindex: '0', style: `--h:${r.value > 0 ? Math.max(pct, 1.5) : 0}`, 'aria-label': `${r.title}: ${[...r.lines].join(', ')}` });
+                if (r.value > 0) col.append(h('div', { class: 'bar-mark' }));
+                if (labelFor(i)) col.append(h('div', { class: 'cap' }, fmt(r.value)));
+                const show = () => {
+                    tip.textContent = '';
+                    tip.append(h('b', {}, r.title), ...r.lines.map(l => h('span', {}, l)));
+                    tip.hidden = false;
+                    const cr = col.getBoundingClientRect(), pr = root.getBoundingClientRect();
+                    const barTop = cr.bottom - cr.height * (r.value / top);
+                    tip.style.left = Math.max(0, Math.min(pr.width - tip.offsetWidth, cr.left - pr.left + cr.width / 2 - tip.offsetWidth / 2)) + 'px';
+                    tip.style.top = Math.max(0, barTop - pr.top - tip.offsetHeight - 24) + 'px';
+                };
+                const hide = () => { tip.hidden = true; };
+                col.addEventListener('mouseenter', show);
+                col.addEventListener('mouseleave', hide);
+                col.addEventListener('focus', show);
+                col.addEventListener('blur', hide);
+                cols.append(col);
+            });
+            plot.append(cols);
+            root.append(plot, h('div', { class: 'xl' + (dense ? ' dense' : ''), style: `--n:${rows.length}` }, rows.map(r => h('div', {}, r.label))), tip);
+            return root;
+        }
+
+        function tableView(headers, rows) {
+            return h('table', { class: 'tbl' },
+                h('thead', {}, h('tr', {}, headers.map(t => h('th', {}, t)))),
+                h('tbody', {}, rows.map(r => h('tr', {}, r.map((c, i) => h('td', { class: i ? 'num' : '' }, c))))));
+        }
+
+        // ერთი პანელი: სათაური + გადამრთველი დიაგრამა/ცხრილი
+        function chartPanel(panelId, key, title, sub, build) {
+            const panel = $(panelId);
+            panel.textContent = '';
+            const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'ჩვენების რეჟიმი' },
+                ['chart', 'table'].map(mode => h('button', {
+                    type: 'button',
+                    'aria-pressed': String(CHART_MODE[key] === mode),
+                    onclick: () => { CHART_MODE[key] = mode; render(); }
+                }, mode === 'chart' ? 'დიაგრამა' : 'ცხრილი')));
+            panel.append(h('div', { class: 'panel-head' }, h('div', {}, h('h2', {}, title), h('p', { class: 'sub' }, sub)), seg));
+            panel.append(build(CHART_MODE[key]));
+        }
+
+        function renderScores(rows, quiz) {
+            const BUCKETS = 5;
+            const buckets = Array.from({ length: BUCKETS }, (_, i) => ({
+                lo: i === 0 ? 0 : Math.floor(quiz.max * i / BUCKETS) + 1,
+                hi: Math.floor(quiz.max * (i + 1) / BUCKETS),
+                names: []
+            }));
+            rows.forEach(r => { const b = buckets.find(x => r.point >= x.lo && r.point <= x.hi); if (b) b.names.push(r.name); });
+            const max = Math.max(...buckets.map(b => b.names.length));
+            const step = [1, 2, 5, 10, 20, 50, 100, 200, 500].find(st => st * 2 >= max) || 1000;
+            const top = Math.max(step * 2, 2);
+            chartPanel('panelScores', 'scores', 'ქულების განაწილება', 'სტუდენტების რაოდენობა ქულის მიხედვით', mode => {
+                if (!rows.length) return h('div', { class: 'state' }, 'მონაცემები ჯერ არ არის.');
+                if (mode === 'table') return tableView(['ქულები', 'სტუდენტი'], buckets.map(b => [`${b.lo}–${b.hi}`, String(b.names.length)]));
+                return columnChart({
+                    rows: buckets.map(b => ({
+                        label: `${b.lo}–${b.hi}`,
+                        value: b.names.length,
+                        title: `${b.lo}–${b.hi} ქულა`,
+                        lines: [plural(b.names.length), ...(b.names.length ? [b.names.slice(0, 6).join(', ') + (b.names.length > 6 ? ` +${b.names.length - 6}` : '')] : [])]
+                    })),
+                    top, ticks: [0, step, top], fmt: String, labelFor: i => buckets[i].names.length > 0
+                });
+            });
+        }
+
+        function renderQuestions(rows, quiz) {
+            const n = rows.length;
+            const stats = Array.from({ length: quiz.max }, (_, j) => {
+                const ok = rows.filter(r => r.detail[j] === '1').length;
+                return { j, ok, pct: n ? Math.round(ok / n * 100) : 0 };
+            });
+            const hardest = [...stats].sort((a, b) => a.pct - b.pct || a.j - b.j).slice(0, 3).map(s => s.j);
+            const sub = n < 2
+                ? 'რამდენმა პროცენტმა უპასუხა სწორად'
+                : `რამდენმა პროცენტმა უპასუხა სწორად · ყველაზე რთული: ${hardest.map(j => `${j + 1} (${stats[j].pct}%)`).join(', ')}`;
+            chartPanel('panelQuestions', 'questions', 'კითხვების სირთულე', sub, mode => {
+                if (!n) return h('div', { class: 'state' }, 'მონაცემები ჯერ არ არის.');
+                if (mode === 'table') {
+                    return tableView(['კითხვა', 'სწორად', 'პროცენტი'], stats.map(s => [`${s.j + 1}`, `${s.ok} / ${n}`, `${s.pct}%`]));
+                }
+                const sorted = [...stats].sort((a, b) => a.pct - b.pct);
+                const lowest = new Set(hardest), highest = sorted[sorted.length - 1].j;
+                return columnChart({
+                    rows: stats.map(s => ({
+                        label: String(s.j + 1),
+                        value: s.pct,
+                        title: `კითხვა ${s.j + 1}`,
+                        lines: [`${s.pct}% სწორად`, `${s.ok} / ${n} სტუდენტი`]
+                    })),
+                    top: 100, ticks: [0, 50, 100], fmt: v => v + '%', dense: true,
+                    labelFor: i => lowest.has(i) || i === highest
+                });
+            });
+        }
+
+        /* ---------- ჯგუფების ცხრილი (მხოლოდ „ყველა ჯგუფი“-ს დროს) ---------- */
+        function renderGroups() {
+            const panel = $('panelGroups');
+            const rows = scoped();
+            panel.hidden = VIEW.group !== '*' || !rows.length;
+            if (panel.hidden) return;
+            const by = new Map();
+            rows.forEach(r => { if (!by.has(r.group)) by.set(r.group, []); by.get(r.group).push(r); });
+            const list = [...by.entries()].map(([key, rs]) => ({
+                key, label: groupLabel(key), n: rs.length,
+                avg: mean(rs.map(r => r.point)),
+                time: mean(rs.map(r => r.time).filter(t => t > 0)) || 0,
+                best: Math.max(...rs.map(r => r.point))
+            })).sort((a, b) => a.label.localeCompare(b.label, 'en'));
+            const max = quizInfo().max;
+            panel.textContent = '';
+            panel.append(
+                h('div', { class: 'panel-head' }, h('div', {}, h('h2', {}, 'ჯგუფების შედარება'), h('p', { class: 'sub' }, 'დააწკაპუნე ჯგუფზე, რომ მხოლოდ ის ჯგუფი გამოჩნდეს.'))),
+                h('table', { class: 'tbl clickable' },
+                    h('thead', {}, h('tr', {}, ['ჯგუფი', 'სტუდენტი', 'საშუალო ქულა', 'საშუალო დრო', 'საუკეთესო'].map(t => h('th', {}, t)))),
+                    h('tbody', {}, list.map(g => {
+                        const go = () => { VIEW.group = g.key; saveGroupChoice(); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+                        const tr = h('tr', {},
+                            h('td', {}, h('button', { type: 'button', class: 'link', onclick: e => { e.stopPropagation(); go(); } }, g.label)),
+                            h('td', { class: 'num' }, String(g.n)),
+                            h('td', { class: 'num' }, h('div', { class: 'score' },
+                                h('div', { class: 'meter', role: 'img', 'aria-label': `${g.avg.toFixed(1)} / ${max}` }, h('i', { style: `width:${g.avg / max * 100}%` })),
+                                h('span', {}, `${g.avg.toFixed(1)} / ${max}`))),
+                            h('td', { class: 'num' }, fmtTime(Math.round(g.time))),
+                            h('td', { class: 'num' }, `${g.best} / ${max}`));
+                        tr.addEventListener('click', go);
+                        return tr;
+                    }))));
+        }
+
+        /* ---------- სტუდენტების ცხრილი ---------- */
+        function renderTable(rows, quiz) {
+            const box = $('tableBox');
+            box.textContent = '';
+            const showGroup = VIEW.group === '*';
+            $('tableSub').textContent = showGroup
+                ? 'ყველა ჯგუფი. სახელზე დაწკაპუნებით ჩანს, რომელ კითხვებს უპასუხა სწორად.'
+                : `ჯგუფი ${groupLabel(VIEW.group)}. სახელზე დაწკაპუნებით ჩანს, რომელ კითხვებს უპასუხა სწორად.`;
+            if (!rows.length) {
+                box.append(h('div', { class: 'state' }, DATA.results.length ? 'ამ ფილტრით შედეგი ვერ მოიძებნა.' : 'ჯერ არავის გაუგზავნია შედეგი.'));
+                return;
+            }
+            const q = $('q').value.trim().toLowerCase();
+            const list = rows.filter(r => !q || r.name.toLowerCase().includes(q));
+            const cmp = {
+                point: (a, b) => b.point - a.point || a.time - b.time,
+                time: (a, b) => (a.time || 1e9) - (b.time || 1e9),
+                name: (a, b) => a.name.localeCompare(b.name, 'ka'),
+                recent: (a, b) => b.id - a.id
+            }[VIEW.sort];
+            list.sort(cmp);
+            if (!list.length) {
+                box.append(h('div', { class: 'state' }, 'ამ სახელით ვერავინ მოიძებნა.'));
+                return;
+            }
+            const cols = 6 + (showGroup ? 1 : 0);
+            const tbody = h('tbody');
+            list.forEach((r, i) => {
+                const isOpen = OPEN.has(r.id);
+                const chips = h('div', { class: 'qs' }, [...r.detail].map((c, k) =>
+                    h('span', { class: 'q ' + (c === '1' ? 'ok' : 'no'), title: `კითხვა ${k + 1}: ${c === '1' ? 'სწორია' : 'არასწორია'}` }, String(k + 1))));
+                const del = h('button', { type: 'button', class: 'btn danger' }, 'ცდის გასუფთავება');
+                del.addEventListener('click', () => removeResult(r, quiz, del));
+                const sub = h('tr', { class: 'sub-row', hidden: !isOpen },
+                    h('td', { colspan: String(cols) }, chips, h('div', { class: 'legend' },
+                        h('span', {}, `გაგზავნილია: ${fmtDate(r.at)}`),
+                        h('span', {}, `ლექტორი: ${lecName(r.lecturer)}`),
+                        del)));
+                const tog = h('button', { type: 'button', class: 'tog', 'aria-expanded': String(isOpen) }, r.name);
+                tog.addEventListener('click', () => {
+                    const open = tog.getAttribute('aria-expanded') !== 'true';
+                    tog.setAttribute('aria-expanded', String(open));
+                    sub.hidden = !open;
+                    if (open) OPEN.add(r.id); else OPEN.delete(r.id);
+                });
+                tbody.append(
+                    h('tr', {},
+                        h('td', { class: 'num' }, String(i + 1)),
+                        h('td', {}, tog),
+                        showGroup ? h('td', { class: 'num' }, groupLabel(r.group)) : null,
+                        h('td', { class: 'hide-sm' }, lecName(r.lecturer)),
+                        h('td', {}, h('div', { class: 'score' },
+                            h('div', { class: 'meter', role: 'img', 'aria-label': `${r.point} / ${quiz.max}` }, h('i', { style: `width:${r.point / quiz.max * 100}%` })),
+                            h('span', { class: 'num' }, `${r.point} / ${quiz.max}`))),
+                        h('td', { class: 'num' }, fmtTime(r.time)),
+                        h('td', { class: 'num hide-sm' }, fmtDate(r.at))
+                    ),
+                    sub);
+            });
+            box.append(h('table', { class: 'tbl' },
+                h('thead', {}, h('tr', {},
+                    h('th', {}, '#'), h('th', {}, 'სახელი'), showGroup ? h('th', {}, 'ჯგუფი') : null,
+                    h('th', { class: 'hide-sm' }, 'ლექტორი'), h('th', {}, 'ქულა'), h('th', {}, 'დრო'), h('th', { class: 'hide-sm' }, 'გაგზავნის დრო'))),
+                tbody));
+        }
+
+        async function removeResult(r, quiz, btn) {
+            if (!confirm(`წაიშალოს „${r.name}“-ის შედეგი (${r.point} / ${quiz.max})?\nამის შემდეგ სტუდენტს შეეძლება ტესტის თავიდან გავლა.`)) return;
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API}/api/results/${r.id}`, { method: 'DELETE', headers: { 'X-Access-Code': encodeURIComponent(SESSION.code) } });
+                if (res.status === 401) return logout('კოდი შეიცვალა - შედი თავიდან.');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                OPEN.delete(r.id);
+                await reload();
+            } catch (err) {
+                btn.disabled = false;
+                alert('წაშლა ვერ მოხერხდა. შეამოწმე ინტერნეტი და სცადე ხელახლა.');
+            }
+        }
+
+        /* ---------- CSV ---------- */
+        function exportCsv() {
+            const rows = scoped().sort((a, b) => groupLabel(a.group).localeCompare(groupLabel(b.group)) || b.point - a.point || a.time - b.time);
+            // Excel-ში ფორმულად რომ არ აღიქვას (=, +, -, @ პირველ სიმბოლოდ)
+            const cell = v => {
+                let s = String(v);
+                if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+                return /[",\n;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            };
+            const lines = [['ჯგუფი', 'სახელი', 'ლექტორი', 'ქულა', 'მაქსიმუმი', 'დრო (წმ)', 'დრო', 'გაგზავნის დრო', 'კითხვები (1 = სწორია)']];
+            rows.forEach(r => lines.push([groupLabel(r.group), r.name, lecName(r.lecturer), r.point, r.max, r.time, fmtTime(r.time), fmtDateFull(r.at), r.detail]));
+            const blob = new Blob(['﻿' + lines.map(l => l.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+            const name = `shedegebi-${VIEW.group === '*' ? 'yvela-jgufi' : VIEW.group}-${new Date().toISOString().slice(0, 10)}.csv`;
+            const a = h('a', { href: URL.createObjectURL(blob), download: name });
+            document.body.append(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        }
+
+        /* ---------- განახლება ---------- */
+        async function reload() {
+            if (!SESSION) return;
+            const dash = $('dash');
+            dash.classList.add('loading');
+            $('refresh').disabled = true;
+            try {
+                const { status, data } = await call('/api/results', SESSION.code);
+                if (status === 401) return logout('კოდი შეიცვალა - შედი თავიდან.');
+                if (status !== 200) throw new Error('HTTP ' + status);
+                DATA = data;
+                ensureQuiz();
+                fillMe();
+                render();
+                $('updated').textContent = 'განახლდა: ' + new Date().toLocaleTimeString('en-GB');
+            } catch (err) {
+                $('updated').textContent = 'ვერ განახლდა';
+            } finally {
+                dash.classList.remove('loading');
+                $('refresh').disabled = false;
+            }
+        }
+
+        function setAuto() {
+            clearInterval(timer);
+            // დამალულ ტაბზე არ ვანახლებთ - ბაზის უფასო ლიმიტი დაიზოგება; ტაბზე დაბრუნებისას თავისით განახლდება
+            if ($('auto').checked) timer = setInterval(() => { if (!document.hidden) reload(); }, REFRESH_MS);
+        }
+
+        function saveGroupChoice() {
+            try { localStorage.setItem('hw-group-' + SESSION.lecturerId, VIEW.group); } catch { /* არაფერი */ }
+        }
+
+        /* ---------- მართვა ---------- */
+        $('loginForm').addEventListener('submit', login);
+        $('logout').addEventListener('click', () => logout());
+        $('refresh').addEventListener('click', reload);
+        $('csv').addEventListener('click', exportCsv);
+        $('auto').addEventListener('change', setAuto);
+        $('group').addEventListener('change', e => { VIEW.group = e.target.value; saveGroupChoice(); render(); });
+        $('quiz').addEventListener('change', e => { VIEW.quiz = e.target.value; render(); });
+        $('mine').addEventListener('change', e => { VIEW.mine = e.target.checked; render(); });
+        $('me').addEventListener('change', e => {
+            SESSION.lecturerId = Number(e.target.value);
+            saveSession();
+            VIEW.group = pickDefaultGroup();
+            render();
+        });
+        $('q').addEventListener('input', () => renderTable(scoped(), quizInfo()));
+        $('sort').addEventListener('change', e => { VIEW.sort = e.target.value; renderTable(scoped(), quizInfo()); });
+        document.addEventListener('visibilitychange', () => { if (!document.hidden && SESSION) reload(); });
+
+        (async function init() {
+            const saved = readSession();
+            const meta = await loadLecturers();
+            if (saved && meta) {
+                try {
+                    const { status, data } = await call('/api/results', saved.session.code);
+                    if (status === 200) {
+                        SESSION = saved.session;
+                        REMEMBER = saved.remember;
+                        DATA = data;
+                        return showApp(true);
+                    }
+                    if (status === 401) clearSession();
+                } catch { /* შესვლის ფორმა გამოჩნდება */ }
+            }
+            $('login').hidden = false;
+        })();
+    </script>
+</body>
+
+</html>
