@@ -327,6 +327,8 @@
                 <section class="panel" id="panelQuestions"></section>
             </div>
 
+            <section class="panel" id="panelTopics" hidden></section>
+
             <section class="panel">
                 <div class="panel-head">
                     <div>
@@ -434,7 +436,7 @@
         let DATA = null;         // სერვერის პასუხი: quizzes, lecturers, groups, results
         const VIEW = { group: '*', quiz: null, q: '', sort: 'point' };
         const OPEN = new Set();  // გახსნილი სტუდენტების id-ები (განახლებისას არ იკეტება)
-        const CHART_MODE = { scores: 'chart', questions: 'chart' };
+        const CHART_MODE = { scores: 'chart', questions: 'chart', topics: 'chart' };
         let timer = null;
 
         function readSession() {
@@ -639,6 +641,7 @@
             const rows = scoped();
             renderKpis(rows, quiz);
             renderScores(rows, quiz);
+            renderTopics(rows, quiz);
             renderQuestions(rows, quiz);
             renderTable(rows, quiz);
         }
@@ -745,6 +748,49 @@
             });
         }
 
+        // თემიანი ტესტი (quiz.topics = [[სახელი, კითხვების რაოდენობა], ...]): კითხვის ნომრის მიხედვით თემის სახელი
+        function topicOf(quiz, j) {
+            let from = 0;
+            for (const [name, n] of quiz.topics || []) {
+                if (j < from + n) return name;
+                from += n;
+            }
+            return '';
+        }
+
+        // რამდენი პროცენტი უპასუხა სწორად თითოეული თემის კითხვებზე - ჩანს, რომელი თემაა სუსტი
+        function renderTopics(rows, quiz) {
+            const panel = $('panelTopics');
+            panel.hidden = !quiz.topics;
+            if (!quiz.topics) return;
+            const withDetail = rows.filter(r => r.detail.length === quiz.max);
+            const n = withDetail.length;
+            let from = 0;
+            const stats = quiz.topics.map(([name, count]) => {
+                const range = [from, from + count];
+                from += count;
+                const ok = withDetail.reduce((sum, r) => sum + [...r.detail.slice(range[0], range[1])].filter(c => c === '1').length, 0);
+                const total = n * count;
+                return { name, count, ok, total, pct: total ? Math.round(ok / total * 100) : 0 };
+            });
+            const weakest = [...stats].sort((a, b) => a.pct - b.pct)[0];
+            const sub = n < 1 ? 'სწორი პასუხების პროცენტი თემის მიხედვით' : `სწორი პასუხების პროცენტი თემის მიხედვით · ყველაზე სუსტი: ${weakest.name} (${weakest.pct}%)`;
+            chartPanel('panelTopics', 'topics', 'თემების მიხედვით', sub, mode => {
+                if (!n) return h('div', { class: 'state' }, rows.length ? 'ამ შედეგებს კითხვების დეტალი არ აქვს.' : 'მონაცემები ჯერ არ არის.');
+                if (mode === 'table') return tableView(['თემა', 'სწორად', 'პროცენტი'], stats.map(s => [s.name, `${s.ok} / ${s.total}`, `${s.pct}%`]));
+                return columnChart({
+                    rows: stats.map(s => ({
+                        label: s.name,
+                        value: s.pct,
+                        title: s.name,
+                        lines: [`${s.pct}% სწორად`, `${s.count} კითხვა · ${n} სტუდენტი`]
+                    })),
+                    top: 100, ticks: [0, 50, 100], fmt: v => v + '%',
+                    labelFor: () => true
+                });
+            });
+        }
+
         function renderQuestions(rows, quiz) {
             // ძველი ბაზიდან გადმოტანილ შედეგებს კითხვების დეტალი არ აქვს - სირთულის დიაგრამაში არ ითვლება
             const withDetail = rows.filter(r => r.detail.length === quiz.max);
@@ -762,7 +808,9 @@
             chartPanel('panelQuestions', 'questions', 'კითხვების სირთულე', sub, mode => {
                 if (!n) return h('div', { class: 'state' }, rows.length ? 'ამ შედეგებს კითხვების დეტალი არ აქვს.' : 'მონაცემები ჯერ არ არის.');
                 if (mode === 'table') {
-                    return tableView(['კითხვა', 'სწორად', 'პროცენტი'], stats.map(s => [`${s.j + 1}`, `${s.ok} / ${n}`, `${s.pct}%`]));
+                    return quiz.topics
+                        ? tableView(['კითხვა', 'თემა', 'სწორად', 'პროცენტი'], stats.map(s => [`${s.j + 1}`, topicOf(quiz, s.j), `${s.ok} / ${n}`, `${s.pct}%`]))
+                        : tableView(['კითხვა', 'სწორად', 'პროცენტი'], stats.map(s => [`${s.j + 1}`, `${s.ok} / ${n}`, `${s.pct}%`]));
                 }
                 const sorted = [...stats].sort((a, b) => a.pct - b.pct);
                 const lowest = new Set(hardest), highest = sorted[sorted.length - 1].j;
@@ -770,7 +818,7 @@
                     rows: stats.map(s => ({
                         label: String(s.j + 1),
                         value: s.pct,
-                        title: `კითხვა ${s.j + 1}`,
+                        title: `კითხვა ${s.j + 1}` + (quiz.topics ? ` · ${topicOf(quiz, s.j)}` : ''),
                         lines: [`${s.pct}% სწორად`, `${s.ok} / ${n} სტუდენტი`]
                     })),
                     top: 100, ticks: [0, 50, 100], fmt: v => v + '%', dense: true,
